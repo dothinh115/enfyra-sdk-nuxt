@@ -17,7 +17,8 @@ export function validateTokens(event: H3Event): TokenValidationResult {
   const expTime = getCookie(event, EXP_TIME_KEY);
 
   // Check if access token is expired
-  const isTokenExpired = expTime && Date.now() > parseInt(expTime) * 1000;
+  // expTime is expected to be in milliseconds
+  const isTokenExpired = expTime && Date.now() > parseInt(expTime);
 
   if (accessToken && !isTokenExpired) {
     // Token is valid, use it
