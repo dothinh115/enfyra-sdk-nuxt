@@ -44,3 +44,9 @@ export interface UseEnfyraApiReturn<T> {
     files?: any[];
   }) => Promise<T | T[] | null>;
 }
+
+// Re-export auth types
+export * from './auth';
+
+// Re-export composables types
+export * from './composables';

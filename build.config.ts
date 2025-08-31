@@ -1,6 +1,7 @@
 import { defineBuildConfig } from "unbuild";
 
 export default defineBuildConfig({
+  failOnWarn: false,
   externals: ["@nuxt/kit"],
   entries: [
     "src/module",
@@ -13,6 +14,7 @@ export default defineBuildConfig({
       input: "src/composables/",
       outDir: "dist/composables",
       format: "esm",
+      declaration: true,
     },
     {
       input: "src/constants/",

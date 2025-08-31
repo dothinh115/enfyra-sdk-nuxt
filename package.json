@@ -1,14 +1,14 @@
 {
   "name": "@enfyra/sdk-nuxt",
-  "version": "0.1.12",
+  "version": "0.1.13",
   "description": "Nuxt SDK for Enfyra CMS",
   "main": "./dist/module.mjs",
-  "types": "./dist/module.d.ts",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "import": "./dist/module.mjs",
       "require": "./dist/module.cjs",
-      "types": "./dist/module.d.ts"
+      "types": "./dist/index.d.ts"
     }
   },
   "files": [
@@ -28,8 +28,8 @@
   },
   "scripts": {
     "dev": "nuxi dev playground",
-    "build": "nuxt-module-build build",
-    "prepack": "nuxt-module-build build"
+    "build": "nuxt-module-build build && npx tsc -p tsconfig.build.json && node scripts/copy-composables-types.js",
+    "prepack": "nuxt-module-build build && npx tsc -p tsconfig.build.json && node scripts/copy-composables-types.js"
   },
   "peerDependencies": {
     "@nuxt/kit": "^3.18.1",
