@@ -18,6 +18,20 @@ export default defineNuxtModule({
   setup(options, nuxt) {
     const { resolve } = createResolver(import.meta.url);
 
+    // Validate required configuration
+    if (!options.apiUrl || !options.appUrl) {
+      throw new Error(
+        `[Enfyra SDK Nuxt] Missing required configuration:\n` +
+        `${!options.apiUrl ? '- apiUrl is required\n' : ''}` +
+        `${!options.appUrl ? '- appUrl is required\n' : ''}` +
+        `Please configure both in your nuxt.config.ts:\n` +
+        `enfyraSDK: {\n` +
+        `  apiUrl: 'https://your-api-url',\n` +
+        `  appUrl: 'https://your-app-url'\n` +
+        `}`
+      );
+    }
+
     // Make module options available at runtime
     nuxt.options.runtimeConfig.public.enfyraSDK = {
       ...nuxt.options.runtimeConfig.public.enfyraSDK,

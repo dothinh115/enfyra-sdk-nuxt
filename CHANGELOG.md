@@ -7,6 +7,98 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.3] - 2025-09-01
+
+### 🚀 Real-time Progress Tracking - Revolutionary Batch Monitoring
+
+This release introduces industry-first real-time progress tracking for batch operations, providing unparalleled visibility into bulk processing operations with comprehensive metrics and developer-friendly interfaces.
+
+### Added
+- **📊 Real-time Progress Callbacks** - Live batch operation monitoring with detailed metrics
+  - `onProgress?: (progress: BatchProgress) => void` - Real-time callback with comprehensive progress data
+  - Works with all batch operations (PATCH, DELETE, POST file uploads)
+  - Available at both composable level and per-execution level with override support
+
+- **🎯 Comprehensive BatchProgress Interface** - Industry-leading progress tracking with full TypeScript support
+  ```typescript
+  interface BatchProgress {
+    progress: number;                    // 0-100 percentage
+    completed: number;                   // Number of completed operations
+    total: number;                       // Total number of operations
+    failed: number;                      // Number of failed operations
+    inProgress: number;                  // Operations currently running
+    estimatedTimeRemaining?: number;     // Milliseconds remaining
+    averageTime?: number;                // Average time per operation (ms)
+    currentBatch: number;               // Current batch being processed
+    totalBatches: number;               // Total number of batches
+    operationsPerSecond?: number;       // Processing speed
+    results: Array<{                    // Detailed results
+      index: number;
+      status: 'completed' | 'failed';
+      result?: any;
+      error?: ApiError;
+      duration?: number;
+    }>;
+  }
+  ```
+
+- **⏱️ Advanced Performance Metrics** - Professional-grade monitoring capabilities
+  - **Real-time ETA calculation** - Estimated time remaining based on current processing speed
+  - **Operations per second tracking** - Live processing speed monitoring
+  - **Average processing time** - Individual operation performance metrics
+  - **Batch progress visualization** - Current batch vs total batches tracking
+  - **Individual result logging** - Success/failure status for each operation with duration
+
+- **🎛️ Flexible Progress Configuration** - Complete control over progress monitoring
+  ```typescript
+  // Global progress tracking for all executions
+  const { execute } = useEnfyraApi('/users', {
+    method: 'delete',
+    batchSize: 10,
+    concurrent: 3,
+    onProgress: (progress) => {
+      updateProgressBar(progress.progress);
+      console.log(`${progress.completed}/${progress.total} - ETA: ${progress.estimatedTimeRemaining}ms`);
+    }
+  });
+
+  // Override progress tracking per execution
+  await execute({
+    ids: criticalUserIds,
+    onProgress: (progress) => {
+      // Custom progress handling for this specific operation
+      sendProgressToAnalytics(progress);
+    }
+  });
+  ```
+
+- **🔒 Configuration Validation** - Enhanced module setup with required configuration validation
+  - Automatic validation of required `apiUrl` and `appUrl` configuration
+  - Clear error messages with setup instructions when configuration is missing
+  - Prevents runtime errors with early configuration validation during Nuxt module setup
+
+### Enhanced
+- **⚡ Performance Optimization** - Zero-overhead progress tracking when not used
+  - Progress calculations only execute when `onProgress` callback is provided
+  - Minimal performance impact with efficient metric calculation
+  - Smart memory management for large batch operations
+
+- **🛠️ Developer Experience** - Complete TypeScript integration with comprehensive examples
+  - Full IntelliSense support for BatchProgress interface
+  - Detailed progress tracking examples in README
+  - Real-world use cases for progress monitoring
+  - Professional progress bar implementation examples
+
+### Use Cases Unlocked
+- **Enterprise Dashboards**: Real-time bulk operation monitoring with ETA displays
+- **File Upload Systems**: Live upload progress with speed and completion metrics
+- **Data Migration Tools**: Professional progress tracking for large dataset operations
+- **Admin Panels**: User-friendly bulk operation feedback with detailed progress
+- **CI/CD Systems**: Batch processing monitoring with performance analytics
+
+### Breaking Changes
+None - Fully backward compatible. All existing batch operations continue to work unchanged. Progress tracking is opt-in via `onProgress` callback.
+
 ## [0.2.2] - 2025-09-01
 
 ### 🚀 Enhanced Batch Operations - Game-Changing Performance Control
@@ -279,6 +371,7 @@ None - Fully backward compatible. All existing batch operations continue to work
 - **0.2.0** - Added complete authentication system with `useEnfyraAuth`, server-side auth middleware, and comprehensive documentation
 - **0.2.1** - Enhanced TypeScript support with function overloads, improved error handling with typed errors, and better IntelliSense
 - **0.2.2** - Revolutionary batch processing with chunking and concurrency control - industry-leading bulk operations
+- **0.2.3** - Real-time progress tracking for batch operations with comprehensive metrics and configuration validation
 
 ## Migration Guide
 

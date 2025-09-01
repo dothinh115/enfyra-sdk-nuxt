@@ -13,7 +13,8 @@ The `useEnfyraApi` composable provides a consistent interface for both client-si
 - ✅ **Reactive loading states** for both SSR and client modes
 - ✅ **Full TypeScript support** with proper typing
 - ✅ **Dynamic ID support** for CRUD operations
-- ✅ **Batch operations** for multiple resources (PATCH/DELETE with IDs, POST with files)
+- ✅ **Batch operations** with real-time progress tracking (PATCH/DELETE with IDs, POST with files)
+- ✅ **Smart TypeScript** - Batch options only appear when using batch-capable methods
 - ✅ **Manual execution control** in client mode (never auto-executes)
 
 ### SSR vs Client Mode
@@ -79,11 +80,22 @@ await execute({ id: '123' });
 await execute({ id: '123', body: { name: 'Updated Name' } });
 
 // Batch operations (patch/delete methods only)
+// 🎯 TypeScript: batchSize, concurrent, onProgress options available when using `ids`
 await execute({ ids: ['1', '2', '3'] });
-await execute({ ids: ['1', '2'], body: { status: 'inactive' } });
+await execute({ 
+  ids: ['1', '2'], 
+  body: { status: 'inactive' },
+  batchSize: 10,
+  onProgress: (progress) => console.log(`${progress.completed}/${progress.total}`)
+});
 
 // Batch file upload (POST method only)
-await execute({ files: [formData1, formData2, formData3] });
+// 🎯 TypeScript: batch options available when using `files`
+await execute({ 
+  files: [formData1, formData2, formData3],
+  concurrent: 3,
+  onProgress: (progress) => updateProgressBar(progress.progress)
+});
 ```
 
 ### Dynamic URLs
@@ -130,6 +142,16 @@ interface ApiOptions<T> {
   /** Default value function (SSR mode only) */
   default?: () => T;
 
+  // 🎯 Batch Options - Only available for PATCH, DELETE, and POST methods
+  /** Batch size for chunking large operations (default: no limit) */
+  batchSize?: number;
+
+  /** Maximum concurrent requests (default: no limit) */
+  concurrent?: number;
+
+  /** Real-time progress callback for batch operations */
+  onProgress?: (progress: BatchProgress) => void;
+
   /** Enable SSR with useFetch instead of $fetch */
   ssr?: boolean;
 
@@ -149,7 +171,17 @@ interface ExecuteOptions {
   ids?: (string | number)[];
 
   /** Files array for batch POST operations (file uploads) */
-  files?: any[];
+  files?: FormData[];
+
+  // 🎯 Batch Options - Only available when using `ids` or `files`
+  /** Override batch size for this specific execution */
+  batchSize?: number;
+
+  /** Override concurrent limit for this specific execution */
+  concurrent?: number;
+
+  /** Override progress callback for this specific execution */
+  onProgress?: (progress: BatchProgress) => void;
 }
 ```
 
@@ -779,6 +811,7 @@ async function handleDelete(userId: string) {
 2. **"Batch operations not working"**
    - Batch operations only work in Client mode, not SSR mode
    - Ensure you're using correct method (PATCH/DELETE for IDs, POST for files)
+   - Check that you're providing `ids` or `files` parameters to trigger batch mode
 
 3. **"Data not reactive in SSR"**
    - Use `refresh()` to update SSR data
@@ -792,6 +825,10 @@ async function handleDelete(userId: string) {
    - Use `pending` not `loading` in destructuring
    - Ensure composables are at setup level
    - Check return type differences between SSR and Client modes
+
+6. **"Batch options not showing in IntelliSense"**
+   - Batch options (`batchSize`, `concurrent`, `onProgress`) only appear for PATCH, DELETE, and POST methods
+   - For execute options, batch parameters only show when using `ids` or `files`
 
 ### Performance Tips
 
@@ -856,12 +893,14 @@ const { data, pending, error } = useEnfyraApi('/users', {
 - ✅ Headers forwarding for authentication
 - ✅ SEO-friendly with pre-rendered data
 - ❌ No batch operations support
+- ❌ No progress tracking for bulk operations
 - ❌ No manual execution control
 
 ### Client Mode (default)
 - ✅ Perfect for user interactions and forms
 - ✅ Manual execution control prevents unexpected API calls
-- ✅ Full batch operations support
+- ✅ Full batch operations with real-time progress tracking
+- ✅ Smart TypeScript - batch options only for compatible methods
 - ✅ Lighter weight for interactive features
 - ❌ No SSR benefits
 - ❌ Requires manual error handling checks

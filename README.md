@@ -7,7 +7,7 @@ Nuxt SDK for Enfyra CMS - A powerful composable-based API client with full SSR s
 ✅ **SSR & Client-Side Support** - Automatic server-side rendering with `useFetch` or client-side with `$fetch`  
 ✅ **Authentication Integration** - Built-in auth composables with automatic header forwarding  
 ✅ **TypeScript Support** - Full type safety with auto-generated declarations  
-✅ **Batch Operations** - Efficient bulk operations for CRUD actions (client-side)  
+✅ **Batch Operations** - Efficient bulk operations with real-time progress tracking (client-side)  
 ✅ **Error Handling** - Automatic error management with console logging  
 ✅ **Reactive State** - Built-in loading, error, and data states  
 ✅ **Caching Support** - Optional cache keys for SSR mode optimization  
@@ -144,22 +144,34 @@ await execute({
 - `headers?: Record<string, string>` - Custom headers
 - `errorContext?: string` - Error context for logging
 - `onError?: (error: ApiError, context?: string) => void` - Custom error handler
-- `batchSize?: number` - Batch size for chunking large operations (default: no limit)
-- `concurrent?: number` - Maximum concurrent requests (default: no limit)
 - `key?: string` - Cache key (SSR mode, optional)
 - `default?: () => T` - Default value (SSR mode only)
+
+**Batch Options (only available for PATCH, DELETE, and POST methods):**
+- `batchSize?: number` - Batch size for chunking large operations (default: no limit)
+- `concurrent?: number` - Maximum concurrent requests (default: no limit)
+- `onProgress?: (progress: BatchProgress) => void` - Real-time progress callback for batch operations
+
+> 🎯 **TypeScript Smart:** Batch options (`batchSize`, `concurrent`, `onProgress`) are only available in TypeScript IntelliSense when using methods that support batch operations (PATCH, DELETE, POST). For GET and PUT methods, these options won't appear in autocomplete.
 
 **⚠️ Important: Return Types Differ**
 - **SSR Mode**: Returns `useFetch` result `{ data, pending, error, refresh }`
 - **Client Mode**: Returns custom result `{ data, pending, error, execute }`
 
 **Execute Options (Client mode only):**
+
+**Basic Options:**
 - `id?: string | number` - Single resource ID
+- `body?: any` - Override request body
+
+**Batch Options (only when using `ids` or `files`):**
 - `ids?: (string | number)[]` - Batch operation IDs (PATCH/DELETE)
 - `files?: FormData[]` - Array of FormData objects for batch upload (POST)
-- `body?: any` - Override request body
 - `batchSize?: number` - Override batch size for this execution
 - `concurrent?: number` - Override concurrent limit for this execution
+- `onProgress?: (progress: BatchProgress) => void` - Override progress callback for this execution
+
+> 🎯 **TypeScript Smart:** Batch execute options (`batchSize`, `concurrent`, `onProgress`) are only available when you provide `ids` or `files` parameters, ensuring type safety.
 
 ### `useEnfyraAuth()`
 
@@ -184,6 +196,7 @@ await fetchUser()                 // Refresh user data
 
 ```typescript
 // Basic batch delete - unlimited parallel requests
+// 🎯 Note: Batch options only appear in IntelliSense for DELETE method
 const { execute: deleteItems } = useEnfyraApi('/items', {
   method: 'delete',
   errorContext: 'Delete Items'
@@ -191,38 +204,82 @@ const { execute: deleteItems } = useEnfyraApi('/items', {
 
 await deleteItems({ ids: ['1', '2', '3'] });
 
-// Advanced batch operations with concurrency control
+// Advanced batch operations with concurrency control  
+// 🎯 TypeScript shows batch options (batchSize, concurrent, onProgress) for DELETE method
 const { execute: deleteMany } = useEnfyraApi('/users', {
   method: 'delete',
-  batchSize: 10,      // Process 10 items at a time
-  concurrent: 3,      // Max 3 requests simultaneously
+  batchSize: 10,      // ✅ Available: DELETE method supports batching
+  concurrent: 3,      // ✅ Available: DELETE method supports batching  
+  onProgress: (progress) => {  // ✅ Available: DELETE method supports batching
+    console.log(`Deleting: ${progress.completed}/${progress.total}`);
+  },
   onError: (error, context) => toast.error(`${context}: ${error.message}`)
+});
+
+// GET method example - batch options NOT available
+// 🎯 TypeScript won't show batch options for GET method
+const { execute: getUsers } = useEnfyraApi('/users', {
+  method: 'get',
+  // batchSize: 10,      // ❌ Not available: GET doesn't support batching
+  // concurrent: 3,      // ❌ Not available: GET doesn't support batching
+  // onProgress: () => {}  // ❌ Not available: GET doesn't support batching
+  errorContext: 'Fetch Users'
 });
 
 // Delete 100 users in controlled batches
 await deleteMany({ ids: Array.from({length: 100}, (_, i) => `user-${i}`) });
 
 // Override batch settings per execution
+// 🎯 TypeScript shows batch options for PATCH method
 const { execute: updateUsers } = useEnfyraApi('/users', {
   method: 'patch',
-  batchSize: 20,     // Default: 20 per batch
-  concurrent: 5      // Default: 5 concurrent
+  batchSize: 20,     // ✅ Available: PATCH method supports batching
+  concurrent: 5      // ✅ Available: PATCH method supports batching
 });
 
 // This execution uses different settings
+// 🎯 Batch options in execute() only available when using `ids` or `files`
 await updateUsers({ 
-  ids: largeUserList,
+  ids: largeUserList,           // ✅ Triggers batch mode
   body: { status: 'active' },
-  batchSize: 50,     // Override: 50 per batch for this call
-  concurrent: 10     // Override: 10 concurrent for this call
+  batchSize: 50,     // ✅ Available: Using `ids` parameter  
+  concurrent: 10,    // ✅ Available: Using `ids` parameter
+  onProgress: (progress) => {   // ✅ Available: Using `ids` parameter
+    console.log(`Updating: ${progress.completed}/${progress.total}`);
+  }
 });
 
-// Batch file upload with progress control
+// Single operation - batch options NOT available in execute
+await updateUsers({
+  id: 'single-user-id',         // ❌ Single operation, no batch options
+  body: { status: 'active' }
+  // batchSize: 50,             // ❌ Not available: Not using `ids` or `files`
+  // concurrent: 10,            // ❌ Not available: Not using `ids` or `files`  
+  // onProgress: () => {}       // ❌ Not available: Not using `ids` or `files`
+});
+
+// Batch file upload with real-time progress tracking
+const progressState = ref({
+  progress: 0,
+  completed: 0,
+  total: 0,
+  failed: 0,
+  estimatedTimeRemaining: 0,
+  operationsPerSecond: 0
+});
+
+// 🎯 TypeScript shows batch options for POST method (supports file uploads)
 const { execute: uploadFiles } = useEnfyraApi('/file_definition', {
   method: 'post',
-  batchSize: 5,      // Upload 5 files at a time
-  concurrent: 2,     // Max 2 uploads simultaneously
-  errorContext: 'Upload Files'
+  batchSize: 5,      // ✅ Available: POST method supports batching for files
+  concurrent: 2,     // ✅ Available: POST method supports batching for files
+  errorContext: 'Upload Files',
+  onProgress: (progress) => {  // ✅ Available: POST method supports batching
+    progressState.value = progress;
+    console.log(`Progress: ${progress.progress}% (${progress.completed}/${progress.total})`);
+    console.log(`ETA: ${Math.round((progress.estimatedTimeRemaining || 0) / 1000)}s`);
+    console.log(`Speed: ${progress.operationsPerSecond?.toFixed(1)} ops/sec`);
+  }
 });
 
 // Convert files to FormData array (matches enfyra_app pattern)
@@ -236,6 +293,66 @@ const formDataArray = selectedFiles.map(file => {
 await uploadFiles({ 
   files: formDataArray // Array of FormData objects
 });
+
+// Real-time progress tracking with detailed results
+const { execute: processData } = useEnfyraApi('/process', {
+  method: 'post',
+  batchSize: 10,
+  concurrent: 3,
+  onProgress: (progress) => {
+    // Display progress bar
+    updateProgressBar(progress.progress);
+    
+    // Show detailed metrics
+    console.log('Batch Progress:', {
+      percentage: progress.progress,
+      completed: progress.completed,
+      total: progress.total,
+      failed: progress.failed,
+      currentBatch: progress.currentBatch,
+      totalBatches: progress.totalBatches,
+      averageTime: progress.averageTime,
+      estimatedTimeRemaining: progress.estimatedTimeRemaining,
+      operationsPerSecond: progress.operationsPerSecond
+    });
+    
+    // Handle individual results
+    progress.results.forEach(result => {
+      if (result.status === 'failed') {
+        console.error(`Item ${result.index} failed:`, result.error);
+      }
+    });
+  }
+});
+
+await processData({ 
+  ids: largeDataSet,
+  body: processingOptions 
+});
+```
+
+### Real-time Progress Interface
+
+```typescript
+interface BatchProgress {
+  progress: number;                    // 0-100 percentage
+  completed: number;                   // Number of completed operations
+  total: number;                       // Total number of operations
+  failed: number;                      // Number of failed operations
+  inProgress: number;                  // Operations currently running
+  estimatedTimeRemaining?: number;     // Milliseconds remaining
+  averageTime?: number;                // Average time per operation (ms)
+  currentBatch: number;               // Current batch being processed
+  totalBatches: number;               // Total number of batches
+  operationsPerSecond?: number;       // Processing speed
+  results: Array<{                    // Detailed results
+    index: number;
+    status: 'completed' | 'failed';
+    result?: any;
+    error?: ApiError;
+    duration?: number;
+  }>;
+}
 ```
 
 ### TypeScript Integration
@@ -310,7 +427,7 @@ export default defineNuxtConfig({
     // Required: Main API URL
     apiUrl: process.env.ENFYRA_API_URL || "http://localhost:1105",
     
-    // Optional: API path prefix (default: '')
+    // Optional: API path prefix (default: '/api')
     apiPrefix: '/api/v1',
     
     // Required: App URL for SSR requests  

@@ -6,6 +6,7 @@ import type {
   ExecuteOptions,
   UseEnfyraApiSSRReturn,
   UseEnfyraApiClientReturn,
+  BatchProgress,
 } from "../types";
 import { $fetch } from "../utils/http";
 import { useRuntimeConfig, useFetch, useRequestHeaders } from "#imports";
@@ -47,7 +48,7 @@ export function useEnfyraApi<T = any>(
   path: (() => string) | string,
   opts: ApiOptions<T> = {}
 ): UseEnfyraApiSSRReturn<T> | UseEnfyraApiClientReturn<T> {
-  const { method = "get", body, query, errorContext, onError, ssr, key, batchSize, concurrent } = opts;
+  const { method = "get", body, query, errorContext, onError, ssr, key, batchSize, concurrent, onProgress } = opts;
 
   // SSR mode - use useFetch
   if (ssr) {
@@ -117,9 +118,19 @@ export function useEnfyraApi<T = any>(
       const finalBody = executeOpts?.body || unref(body);
       const finalQuery = unref(query);
       
-      // Use executeOpts overrides if provided, otherwise fall back to options
-      const effectiveBatchSize = executeOpts?.batchSize ?? batchSize;
-      const effectiveConcurrent = executeOpts?.concurrent ?? concurrent;
+      // Check if this is actually a batch operation
+      const isBatchOperation = (
+        !opts.disableBatch && 
+        (
+          (executeOpts?.ids && executeOpts.ids.length > 0 && (method.toLowerCase() === "patch" || method.toLowerCase() === "delete")) ||
+          (method.toLowerCase() === "post" && executeOpts?.files && Array.isArray(executeOpts.files) && executeOpts.files.length > 0)
+        )
+      );
+
+      // Use batch options only if this is actually a batch operation
+      const effectiveBatchSize = isBatchOperation ? (executeOpts?.batchSize ?? batchSize) : undefined;
+      const effectiveConcurrent = isBatchOperation ? (executeOpts?.concurrent ?? concurrent) : undefined;
+      const effectiveOnProgress = isBatchOperation ? (executeOpts?.onProgress ?? onProgress) : undefined;
 
       // Helper function to build clean path
       const buildPath = (...segments: (string | number)[]): string => {
@@ -129,52 +140,205 @@ export function useEnfyraApi<T = any>(
       // Build full base URL with prefix
       const fullBaseURL = apiUrl + (apiPrefix || "");
 
-      // Helper function for batch processing with chunking and concurrency control
+      // Helper function for batch processing with chunking, concurrency control, and real-time progress tracking
       async function processBatch<T>(
         items: any[],
-        processor: (item: any) => Promise<T>
+        processor: (item: any, index: number) => Promise<T>
       ): Promise<T[]> {
         const results: T[] = [];
+        const progressResults: BatchProgress['results'] = [];
+        const startTime = Date.now();
+        let completed = 0;
+        let failed = 0;
         
-        // If no limits, process all at once (current behavior)
-        if (!effectiveBatchSize && !effectiveConcurrent) {
-          const promises = items.map(processor);
-          return await Promise.all(promises);
-        }
-
-        // Chunk items by batchSize
+        // Calculate batch structure
         const chunks = effectiveBatchSize ? 
           Array.from({ length: Math.ceil(items.length / effectiveBatchSize) }, (_, i) =>
             items.slice(i * effectiveBatchSize, i * effectiveBatchSize + effectiveBatchSize)
           ) : [items];
+        
+        const totalBatches = chunks.length;
+        let currentBatch = 0;
 
-        // Process each chunk
-        for (const chunk of chunks) {
+        // Initialize progress tracking
+        const updateProgress = (inProgress: number = 0) => {
+          if (effectiveOnProgress) {
+            const elapsed = Date.now() - startTime;
+            const progress = items.length > 0 ? Math.round((completed / items.length) * 100) : 0;
+            const averageTime = completed > 0 ? elapsed / completed : undefined;
+            const operationsPerSecond = completed > 0 ? (completed / elapsed) * 1000 : undefined;
+            const estimatedTimeRemaining = averageTime && items.length > completed 
+              ? Math.round(averageTime * (items.length - completed)) 
+              : undefined;
+
+            const progressData: BatchProgress = {
+              progress,
+              completed,
+              total: items.length,
+              failed,
+              inProgress,
+              estimatedTimeRemaining,
+              averageTime,
+              currentBatch: currentBatch + 1,
+              totalBatches,
+              operationsPerSecond,
+              results: [...progressResults]
+            };
+
+            effectiveOnProgress(progressData);
+          }
+        };
+
+        // Initial progress update
+        updateProgress(0);
+        
+        // If no limits, process all at once with progress tracking
+        if (!effectiveBatchSize && !effectiveConcurrent) {
+          updateProgress(items.length);
+          
+          const promises = items.map(async (item, index) => {
+            const itemStartTime = Date.now();
+            try {
+              const result = await processor(item, index);
+              const duration = Date.now() - itemStartTime;
+              
+              completed++;
+              progressResults.push({
+                index,
+                status: 'completed',
+                result,
+                duration
+              });
+              updateProgress(items.length - completed);
+              
+              return result;
+            } catch (error) {
+              const duration = Date.now() - itemStartTime;
+              failed++;
+              completed++;
+              
+              progressResults.push({
+                index,
+                status: 'failed',
+                error: error as ApiError,
+                duration
+              });
+              updateProgress(items.length - completed);
+              
+              throw error;
+            }
+          });
+          
+          const results = await Promise.all(promises);
+          updateProgress(0);
+          return results;
+        }
+
+        // Process each chunk with progress tracking
+        for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
+          currentBatch = chunkIndex;
+          const chunk = chunks[chunkIndex];
+          
           if (effectiveConcurrent && chunk.length > effectiveConcurrent) {
             // Process chunk with concurrency limit
             for (let i = 0; i < chunk.length; i += effectiveConcurrent) {
               const batch = chunk.slice(i, i + effectiveConcurrent);
-              const batchResults = await Promise.all(batch.map(processor));
+              const baseIndex = chunkIndex * (effectiveBatchSize || items.length) + i;
+              
+              updateProgress(batch.length);
+              
+              const batchPromises = batch.map(async (item, batchItemIndex) => {
+                const globalIndex = baseIndex + batchItemIndex;
+                const itemStartTime = Date.now();
+                
+                try {
+                  const result = await processor(item, globalIndex);
+                  const duration = Date.now() - itemStartTime;
+                  
+                  completed++;
+                  progressResults.push({
+                    index: globalIndex,
+                    status: 'completed',
+                    result,
+                    duration
+                  });
+                  updateProgress(Math.max(0, batch.length - (batchItemIndex + 1)));
+                  
+                  return result;
+                } catch (error) {
+                  const duration = Date.now() - itemStartTime;
+                  failed++;
+                  completed++;
+                  
+                  progressResults.push({
+                    index: globalIndex,
+                    status: 'failed',
+                    error: error as ApiError,
+                    duration
+                  });
+                  updateProgress(Math.max(0, batch.length - (batchItemIndex + 1)));
+                  
+                  throw error;
+                }
+              });
+              
+              const batchResults = await Promise.all(batchPromises);
               results.push(...batchResults);
             }
           } else {
             // Process entire chunk at once
-            const chunkResults = await Promise.all(chunk.map(processor));
+            const baseIndex = chunkIndex * (effectiveBatchSize || items.length);
+            
+            updateProgress(chunk.length);
+            
+            const chunkPromises = chunk.map(async (item, chunkItemIndex) => {
+              const globalIndex = baseIndex + chunkItemIndex;
+              const itemStartTime = Date.now();
+              
+              try {
+                const result = await processor(item, globalIndex);
+                const duration = Date.now() - itemStartTime;
+                
+                completed++;
+                progressResults.push({
+                  index: globalIndex,
+                  status: 'completed',
+                  result,
+                  duration
+                });
+                updateProgress(Math.max(0, chunk.length - (chunkItemIndex + 1)));
+                
+                return result;
+              } catch (error) {
+                const duration = Date.now() - itemStartTime;
+                failed++;
+                completed++;
+                
+                progressResults.push({
+                  index: globalIndex,
+                  status: 'failed',
+                  error: error as ApiError,
+                  duration
+                });
+                updateProgress(Math.max(0, chunk.length - (chunkItemIndex + 1)));
+                
+                throw error;
+              }
+            });
+            
+            const chunkResults = await Promise.all(chunkPromises);
             results.push(...chunkResults);
           }
         }
 
+        // Final progress update
+        updateProgress(0);
         return results;
       }
 
       // Batch operation with multiple IDs (only for patch and delete)
-      if (
-        !opts.disableBatch &&
-        executeOpts?.ids &&
-        executeOpts.ids.length > 0 &&
-        (method.toLowerCase() === "patch" || method.toLowerCase() === "delete")
-      ) {
-        const responses = await processBatch(executeOpts.ids, async (id) => {
+      if (isBatchOperation && executeOpts?.ids && executeOpts.ids.length > 0) {
+        const responses = await processBatch(executeOpts.ids, async (id, index) => {
           const finalPath = buildPath(basePath, id);
           return $fetch<T>(finalPath, {
             baseURL: fullBaseURL,
@@ -190,14 +354,8 @@ export function useEnfyraApi<T = any>(
       }
 
       // Batch operation with files array for POST method
-      if (
-        !opts.disableBatch &&
-        method.toLowerCase() === "post" &&
-        executeOpts?.files &&
-        Array.isArray(executeOpts.files) &&
-        executeOpts.files.length > 0
-      ) {
-        const responses = await processBatch(executeOpts.files, async (fileObj: any) => {
+      if (isBatchOperation && executeOpts?.files && Array.isArray(executeOpts.files) && executeOpts.files.length > 0) {
+        const responses = await processBatch(executeOpts.files, async (fileObj: any, index) => {
           return $fetch<T>(basePath, {
             baseURL: fullBaseURL,
             method: method as any,
