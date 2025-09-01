@@ -4,6 +4,7 @@ import {
   addServerHandler,
   addImportsDir,
 } from "@nuxt/kit";
+import { ENFYRA_API_PREFIX } from "./constants/config";
 
 export default defineNuxtModule({
   meta: {
@@ -12,7 +13,6 @@ export default defineNuxtModule({
   },
   defaults: {
     apiUrl: "",
-    apiPrefix: "/api",
     appUrl: "",
   },
   setup(options, nuxt) {
@@ -32,10 +32,11 @@ export default defineNuxtModule({
       );
     }
 
-    // Make module options available at runtime
+    // Make module options available at runtime with hardcoded apiPrefix
     nuxt.options.runtimeConfig.public.enfyraSDK = {
       ...nuxt.options.runtimeConfig.public.enfyraSDK,
       ...options,
+      apiPrefix: ENFYRA_API_PREFIX,
     };
 
     // Auto-import composables
@@ -47,21 +48,21 @@ export default defineNuxtModule({
       middleware: true,
     });
 
-    // Register server handlers from SDK
+    // Register server handlers from SDK with hardcoded prefix
     addServerHandler({
-      route: "/api/login",
+      route: `${ENFYRA_API_PREFIX}/login`,
       handler: resolve("./runtime/server/api/login.post"),
       method: "post",
     });
 
     addServerHandler({
-      route: "/api/logout",
+      route: `${ENFYRA_API_PREFIX}/logout`,
       handler: resolve("./runtime/server/api/logout.post"),
       method: "post",
     });
 
     addServerHandler({
-      route: "/api/**",
+      route: `${ENFYRA_API_PREFIX}/**`,
       handler: resolve("./runtime/server/api/all"),
     });
   },

@@ -55,4 +55,13 @@ fs.writeFileSync(path.join(__dirname, '../dist/composables/useEnfyraApi.d.ts'), 
 // Write main composables.d.ts
 fs.writeFileSync(path.join(__dirname, '../dist/composables.d.ts'), mainComposablesTypes);
 
+// Write constants/config.d.ts
+const configTypes = `/**
+ * Hardcoded API prefix for all Enfyra SDK routes
+ * This ensures no conflicts with application routes
+ */
+export declare const ENFYRA_API_PREFIX = "/enfyra/api";`;
+
+fs.writeFileSync(path.join(__dirname, '../dist/constants/config.d.ts'), configTypes);
+
 console.log('✅ Fixed composables types');

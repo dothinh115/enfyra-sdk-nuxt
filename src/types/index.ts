@@ -1,6 +1,5 @@
 export interface EnfyraConfig {
   apiUrl: string;
-  apiPrefix?: string;
   defaultHeaders?: Record<string, string>;
 }
 

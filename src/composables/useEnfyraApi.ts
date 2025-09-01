@@ -9,6 +9,7 @@ import type {
   BatchProgress,
 } from "../types";
 import { $fetch } from "../utils/http";
+import { ENFYRA_API_PREFIX } from "../constants/config";
 import { useRuntimeConfig, useFetch, useRequestHeaders } from "#imports";
 
 function handleError(
@@ -58,7 +59,7 @@ export function useEnfyraApi<T = any>(
       .replace(/^\/+/, ""); // Remove leading slashes
 
     const finalUrl =
-      (config?.appUrl || "") + (config?.apiPrefix || "") + "/" + basePath;
+      (config?.appUrl || "") + (config?.apiPrefix || ENFYRA_API_PREFIX) + "/" + basePath;
 
     // Get headers from client request and filter out connection-specific headers
     const clientHeaders = process.client
@@ -138,7 +139,7 @@ export function useEnfyraApi<T = any>(
       };
 
       // Build full base URL with prefix
-      const fullBaseURL = apiUrl + (apiPrefix || "");
+      const fullBaseURL = apiUrl + (apiPrefix || ENFYRA_API_PREFIX);
 
       // Helper function for batch processing with chunking, concurrency control, and real-time progress tracking
       async function processBatch<T>(

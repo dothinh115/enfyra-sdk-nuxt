@@ -427,9 +427,6 @@ export default defineNuxtConfig({
     // Required: Main API URL
     apiUrl: process.env.ENFYRA_API_URL || "http://localhost:1105",
     
-    // Optional: API path prefix (default: '/api')
-    apiPrefix: '/api/v1',
-    
     // Required: App URL for SSR requests  
     appUrl: process.env.ENFYRA_APP_URL || "http://localhost:3001",
   },

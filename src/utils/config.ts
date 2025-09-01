@@ -3,7 +3,6 @@ import type { EnfyraConfig } from '../types';
 
 const config = ref<EnfyraConfig>({
   apiUrl: '',
-  apiPrefix: '/api',
   defaultHeaders: {}
 });
 
