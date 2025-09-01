@@ -7,6 +7,70 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.2] - 2025-09-01
+
+### 🚀 Enhanced Batch Operations - Game-Changing Performance Control
+
+This release introduces advanced batch processing capabilities that set Enfyra SDK apart from other CMS SDKs with unprecedented control over bulk operations.
+
+### Added
+- **🎯 Advanced Batch Control** - Industry-leading batch processing with chunking and concurrency control
+  - `batchSize?: number` - Control how many items to process per batch chunk (default: no limit)
+  - `concurrent?: number` - Limit maximum simultaneous requests (default: no limit) 
+  - Both options work for PATCH, DELETE, and POST (file upload) batch operations
+  - Per-execution overrides available through `execute()` parameters
+
+- **💡 Intelligent Chunking Algorithm** - Smart batch processing that optimizes for both performance and resource usage
+  ```typescript
+  // Process 1000 users: 20 per batch, max 5 concurrent requests
+  await execute({ 
+    ids: thousandUserIds,
+    batchSize: 20,
+    concurrent: 5
+  });
+  ```
+
+- **🎛️ Fine-Grained Control** - Override batch settings per individual execution
+  ```typescript
+  // Default settings for composable
+  const { execute } = useEnfyraApi('/users', {
+    batchSize: 10,
+    concurrent: 3
+  });
+
+  // Override for specific execution
+  await execute({
+    ids: criticalUserIds,
+    batchSize: 50,    // Override: bigger batches
+    concurrent: 10    // Override: more concurrent requests
+  });
+  ```
+
+- **📊 ExecuteOptions Interface** - New TypeScript interface with full type safety
+  - All execute options now properly typed with IntelliSense support
+  - Includes both original options (body, id, ids, files) and new batch controls
+
+### Enhanced
+- **⚡ Performance Optimization** - Batch operations now scale from small datasets to enterprise-level bulk operations
+  - **Memory efficient**: Chunking prevents memory overload with large datasets
+  - **Server friendly**: Concurrency limits prevent overwhelming backend servers
+  - **Flexible scaling**: From unlimited parallel (current behavior) to highly controlled batching
+
+- **🛠️ Developer Experience** - Complete TypeScript support with detailed documentation
+  - Full IntelliSense for all batch parameters
+  - Comprehensive examples covering all use cases
+  - Clear documentation of performance implications
+
+### Use Cases Unlocked
+- **Enterprise Admin Panels**: Bulk user management with controlled server load
+- **Large-Scale Content Operations**: Mass content publishing with memory efficiency  
+- **File Upload Systems**: Controlled parallel uploads with progress monitoring
+- **Data Migration Tools**: Chunked processing for large dataset transformations
+
+
+### Breaking Changes
+None - Fully backward compatible. All existing batch operations continue to work unchanged (unlimited parallelism by default).
+
 ## [0.2.1] - 2025-09-01
 
 ### Enhanced
@@ -214,6 +278,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **0.1.x** - Core `useEnfyraApi` composable with SSR support, batch operations, and TypeScript integration
 - **0.2.0** - Added complete authentication system with `useEnfyraAuth`, server-side auth middleware, and comprehensive documentation
 - **0.2.1** - Enhanced TypeScript support with function overloads, improved error handling with typed errors, and better IntelliSense
+- **0.2.2** - Revolutionary batch processing with chunking and concurrency control - industry-leading bulk operations
 
 ## Migration Guide
 

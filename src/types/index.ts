@@ -19,6 +19,10 @@ export interface ApiOptions<T> {
   errorContext?: string;
   onError?: (error: ApiError, context?: string) => void;
   disableBatch?: boolean;
+  /** Batch size for chunking large operations (default: no limit) */
+  batchSize?: number;
+  /** Maximum concurrent requests (default: no limit) */
+  concurrent?: number;
   default?: () => T;
   /** Enable SSR with useFetch instead of $fetch */
   ssr?: boolean;
@@ -54,17 +58,25 @@ export interface UseEnfyraApiSSRReturn<T> extends AsyncData<T | null, ApiError> 
   refresh: () => Promise<void>;
 }
 
+// Execute options interface
+export interface ExecuteOptions {
+  body?: any;
+  id?: string | number;
+  ids?: (string | number)[];
+  /** Array of FormData objects for batch upload */
+  files?: FormData[];
+  /** Override batch size for this specific execution */
+  batchSize?: number;
+  /** Override concurrent limit for this specific execution */
+  concurrent?: number;
+}
+
 // Client Mode return type
 export interface UseEnfyraApiClientReturn<T> {
   data: Ref<T | null>;
   error: Ref<ApiError | null>;
   pending: Ref<boolean>;
-  execute: (executeOpts?: {
-    body?: any;
-    id?: string | number;
-    ids?: (string | number)[];
-    files?: any[];
-  }) => Promise<T | T[] | null>;
+  execute: (executeOpts?: ExecuteOptions) => Promise<T | T[] | null>;
 }
 
 

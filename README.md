@@ -143,6 +143,9 @@ await execute({
 - `query?: Record<string, any>` - URL query parameters
 - `headers?: Record<string, string>` - Custom headers
 - `errorContext?: string` - Error context for logging
+- `onError?: (error: ApiError, context?: string) => void` - Custom error handler
+- `batchSize?: number` - Batch size for chunking large operations (default: no limit)
+- `concurrent?: number` - Maximum concurrent requests (default: no limit)
 - `key?: string` - Cache key (SSR mode, optional)
 - `default?: () => T` - Default value (SSR mode only)
 
@@ -153,8 +156,10 @@ await execute({
 **Execute Options (Client mode only):**
 - `id?: string | number` - Single resource ID
 - `ids?: (string | number)[]` - Batch operation IDs (PATCH/DELETE)
-- `files?: FormData[]` - Batch file upload (POST)
+- `files?: FormData[]` - Array of FormData objects for batch upload (POST)
 - `body?: any` - Override request body
+- `batchSize?: number` - Override batch size for this execution
+- `concurrent?: number` - Override concurrent limit for this execution
 
 ### `useEnfyraAuth()`
 
@@ -178,7 +183,7 @@ await fetchUser()                 // Refresh user data
 ### Batch Operations
 
 ```typescript
-// Batch delete multiple items
+// Basic batch delete - unlimited parallel requests
 const { execute: deleteItems } = useEnfyraApi('/items', {
   method: 'delete',
   errorContext: 'Delete Items'
@@ -186,14 +191,50 @@ const { execute: deleteItems } = useEnfyraApi('/items', {
 
 await deleteItems({ ids: ['1', '2', '3'] });
 
-// Batch file upload
-const { execute: uploadFiles } = useEnfyraApi('/files', {
-  method: 'post', 
+// Advanced batch operations with concurrency control
+const { execute: deleteMany } = useEnfyraApi('/users', {
+  method: 'delete',
+  batchSize: 10,      // Process 10 items at a time
+  concurrent: 3,      // Max 3 requests simultaneously
+  onError: (error, context) => toast.error(`${context}: ${error.message}`)
+});
+
+// Delete 100 users in controlled batches
+await deleteMany({ ids: Array.from({length: 100}, (_, i) => `user-${i}`) });
+
+// Override batch settings per execution
+const { execute: updateUsers } = useEnfyraApi('/users', {
+  method: 'patch',
+  batchSize: 20,     // Default: 20 per batch
+  concurrent: 5      // Default: 5 concurrent
+});
+
+// This execution uses different settings
+await updateUsers({ 
+  ids: largeUserList,
+  body: { status: 'active' },
+  batchSize: 50,     // Override: 50 per batch for this call
+  concurrent: 10     // Override: 10 concurrent for this call
+});
+
+// Batch file upload with progress control
+const { execute: uploadFiles } = useEnfyraApi('/file_definition', {
+  method: 'post',
+  batchSize: 5,      // Upload 5 files at a time
+  concurrent: 2,     // Max 2 uploads simultaneously
   errorContext: 'Upload Files'
 });
 
+// Convert files to FormData array (matches enfyra_app pattern)
+const formDataArray = selectedFiles.map(file => {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('folder', folderId || 'null');
+  return formData;
+});
+
 await uploadFiles({ 
-  files: [formData1, formData2, formData3] 
+  files: formDataArray // Array of FormData objects
 });
 ```
 

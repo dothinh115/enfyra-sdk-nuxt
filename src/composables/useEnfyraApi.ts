@@ -3,6 +3,7 @@ import type {
   ApiOptions,
   ApiError,
   BackendErrorExtended,
+  ExecuteOptions,
   UseEnfyraApiSSRReturn,
   UseEnfyraApiClientReturn,
 } from "../types";
@@ -46,7 +47,7 @@ export function useEnfyraApi<T = any>(
   path: (() => string) | string,
   opts: ApiOptions<T> = {}
 ): UseEnfyraApiSSRReturn<T> | UseEnfyraApiClientReturn<T> {
-  const { method = "get", body, query, errorContext, onError, ssr, key } = opts;
+  const { method = "get", body, query, errorContext, onError, ssr, key, batchSize, concurrent } = opts;
 
   // SSR mode - use useFetch
   if (ssr) {
@@ -101,12 +102,7 @@ export function useEnfyraApi<T = any>(
   const error = ref<ApiError | null>(null);
   const pending = ref(false);
 
-  const execute = async (executeOpts?: {
-    body?: any;
-    id?: string | number;
-    ids?: (string | number)[];
-    files?: any[];
-  }) => {
+  const execute = async (executeOpts?: ExecuteOptions) => {
     pending.value = true;
     error.value = null;
 
@@ -120,6 +116,10 @@ export function useEnfyraApi<T = any>(
         .replace(/^\/+/, ""); // Remove leading slashes
       const finalBody = executeOpts?.body || unref(body);
       const finalQuery = unref(query);
+      
+      // Use executeOpts overrides if provided, otherwise fall back to options
+      const effectiveBatchSize = executeOpts?.batchSize ?? batchSize;
+      const effectiveConcurrent = executeOpts?.concurrent ?? concurrent;
 
       // Helper function to build clean path
       const buildPath = (...segments: (string | number)[]): string => {
@@ -129,6 +129,44 @@ export function useEnfyraApi<T = any>(
       // Build full base URL with prefix
       const fullBaseURL = apiUrl + (apiPrefix || "");
 
+      // Helper function for batch processing with chunking and concurrency control
+      async function processBatch<T>(
+        items: any[],
+        processor: (item: any) => Promise<T>
+      ): Promise<T[]> {
+        const results: T[] = [];
+        
+        // If no limits, process all at once (current behavior)
+        if (!effectiveBatchSize && !effectiveConcurrent) {
+          const promises = items.map(processor);
+          return await Promise.all(promises);
+        }
+
+        // Chunk items by batchSize
+        const chunks = effectiveBatchSize ? 
+          Array.from({ length: Math.ceil(items.length / effectiveBatchSize) }, (_, i) =>
+            items.slice(i * effectiveBatchSize, i * effectiveBatchSize + effectiveBatchSize)
+          ) : [items];
+
+        // Process each chunk
+        for (const chunk of chunks) {
+          if (effectiveConcurrent && chunk.length > effectiveConcurrent) {
+            // Process chunk with concurrency limit
+            for (let i = 0; i < chunk.length; i += effectiveConcurrent) {
+              const batch = chunk.slice(i, i + effectiveConcurrent);
+              const batchResults = await Promise.all(batch.map(processor));
+              results.push(...batchResults);
+            }
+          } else {
+            // Process entire chunk at once
+            const chunkResults = await Promise.all(chunk.map(processor));
+            results.push(...chunkResults);
+          }
+        }
+
+        return results;
+      }
+
       // Batch operation with multiple IDs (only for patch and delete)
       if (
         !opts.disableBatch &&
@@ -136,7 +174,7 @@ export function useEnfyraApi<T = any>(
         executeOpts.ids.length > 0 &&
         (method.toLowerCase() === "patch" || method.toLowerCase() === "delete")
       ) {
-        const promises = executeOpts.ids.map(async (id) => {
+        const responses = await processBatch(executeOpts.ids, async (id) => {
           const finalPath = buildPath(basePath, id);
           return $fetch<T>(finalPath, {
             baseURL: fullBaseURL,
@@ -147,7 +185,6 @@ export function useEnfyraApi<T = any>(
           });
         });
 
-        const responses = await Promise.all(promises);
         data.value = responses as T;
         return responses;
       }
@@ -160,7 +197,7 @@ export function useEnfyraApi<T = any>(
         Array.isArray(executeOpts.files) &&
         executeOpts.files.length > 0
       ) {
-        const promises = executeOpts.files.map(async (fileObj: any) => {
+        const responses = await processBatch(executeOpts.files, async (fileObj: any) => {
           return $fetch<T>(basePath, {
             baseURL: fullBaseURL,
             method: method as any,
@@ -170,7 +207,6 @@ export function useEnfyraApi<T = any>(
           });
         });
 
-        const responses = await Promise.all(promises);
         data.value = responses as T;
         return responses;
       }
