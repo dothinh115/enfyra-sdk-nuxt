@@ -18,6 +18,12 @@ export default defineNuxtModule({
   setup(options, nuxt) {
     const { resolve } = createResolver(import.meta.url);
 
+    // Make module options available at runtime
+    nuxt.options.runtimeConfig.public.enfyraSDK = {
+      ...nuxt.options.runtimeConfig.public.enfyraSDK,
+      ...options,
+    };
+
     // Auto-import composables
     addImportsDir(resolve("./composables"));
 

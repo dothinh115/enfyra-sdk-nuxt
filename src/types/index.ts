@@ -4,14 +4,26 @@ export interface EnfyraConfig {
   defaultHeaders?: Record<string, string>;
 }
 
+export interface ApiError {
+  message: string;
+  status?: number;
+  data?: any;
+  response?: any;
+}
+
 export interface ApiOptions<T> {
   method?: 'get' | 'post' | 'put' | 'patch' | 'delete' | 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: any;
   query?: Record<string, any>;
   headers?: Record<string, string>;
   errorContext?: string;
+  onError?: (error: ApiError, context?: string) => void;
   disableBatch?: boolean;
   default?: () => T;
+  /** Enable SSR with useFetch instead of $fetch */
+  ssr?: boolean;
+  /** Unique key for useFetch caching */
+  key?: string;
 }
 
 export interface BackendError {
@@ -32,10 +44,20 @@ export interface BackendErrorExtended extends BackendError {
 }
 
 import type { Ref } from 'vue';
+import type { AsyncData } from 'nuxt/app';
 
-export interface UseEnfyraApiReturn<T> {
+// SSR Mode return type (same as useFetch)
+export interface UseEnfyraApiSSRReturn<T> extends AsyncData<T | null, ApiError> {
   data: Ref<T | null>;
-  error: Ref<any>;
+  pending: Ref<boolean>;
+  error: Ref<ApiError | null>;
+  refresh: () => Promise<void>;
+}
+
+// Client Mode return type
+export interface UseEnfyraApiClientReturn<T> {
+  data: Ref<T | null>;
+  error: Ref<ApiError | null>;
   pending: Ref<boolean>;
   execute: (executeOpts?: {
     body?: any;
@@ -45,8 +67,7 @@ export interface UseEnfyraApiReturn<T> {
   }) => Promise<T | T[] | null>;
 }
 
+
 // Re-export auth types
 export * from './auth';
 
-// Re-export composables types
-export * from './composables';

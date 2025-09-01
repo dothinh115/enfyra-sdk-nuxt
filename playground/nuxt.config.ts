@@ -8,13 +8,8 @@ export default defineNuxtConfig({
       autoprefixer: {},
     },
   },
-  runtimeConfig: {
-    public: {
-      enfyraSDK: {
-        apiUrl: "http://localhost:1105",
-        appUrl: "http://localhost:3001",
-        apiPrefix: "/api",
-      },
-    },
+  enfyraSDK: {
+    apiUrl: "http://localhost:1105",
+    appUrl: "http://localhost:3001",
   },
 });

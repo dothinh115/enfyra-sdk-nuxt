@@ -75,10 +75,44 @@
           </form>
         </div>
 
+        <!-- SSR Test -->
+        <div class="mb-8">
+          <h2 class="text-lg font-semibold text-gray-900 mb-4">
+            SSR Test - Server-side /me fetch
+          </h2>
+          <div class="bg-gray-50 rounded-lg p-4 mb-4">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-sm font-medium text-gray-500">SSR Status:</span>
+              <span
+                :class="[
+                  'px-2 py-1 rounded-full text-xs font-medium',
+                  ssrPending
+                    ? 'bg-yellow-100 text-yellow-800'
+                    : ssrData
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-red-100 text-red-800',
+                ]"
+              >
+                {{ ssrPending ? "Loading..." : ssrData ? "Success" : "Failed" }}
+              </span>
+            </div>
+            <pre class="text-sm text-gray-800">{{
+              ssrError ? `Error: ${ssrError}` : JSON.stringify(ssrData, null, 2)
+            }}</pre>
+          </div>
+          <button
+            @click="refreshSSR"
+            :disabled="ssrPending"
+            class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+          >
+            {{ ssrPending ? "Fetching..." : "Refresh SSR /me" }}
+          </button>
+        </div>
+
         <!-- User Info & Logout -->
         <div class="mb-8" v-if="isLoggedIn">
           <h2 class="text-lg font-semibold text-gray-900 mb-4">
-            User Information
+            User Information (Client)
           </h2>
           <div class="bg-gray-50 rounded-lg p-4 mb-4">
             <pre class="text-sm text-gray-800">{{
@@ -124,9 +158,15 @@
 </template>
 
 <script setup lang="ts">
-import { useEnfyraAuth } from "#imports";
+import { useEnfyraAuth, useEnfyraApi } from "#imports";
 
 const { login, logout, me, isLoggedIn } = useEnfyraAuth();
+
+// SSR test - fetch /me from server
+const { data: ssrData, error: ssrError, pending: ssrPending, refresh: refreshSSR } = useEnfyraApi('/me', {
+  ssr: true,
+  key: 'ssr-me-test'
+});
 
 const isLoading = ref(false);
 const error = ref("");

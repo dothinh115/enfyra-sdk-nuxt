@@ -1,58 +1,104 @@
 import { ref, unref, toRaw } from "vue";
 import type {
   ApiOptions,
+  ApiError,
   BackendErrorExtended,
-  UseEnfyraApiReturn,
+  UseEnfyraApiSSRReturn,
+  UseEnfyraApiClientReturn,
 } from "../types";
 import { $fetch } from "../utils/http";
-import { useRuntimeConfig } from "#imports";
+import { useRuntimeConfig, useFetch, useRequestHeaders } from "#imports";
 
-function handleApiError(error: any, context?: string) {
-  let message = "Request failed";
-  let errorCode = "UNKNOWN_ERROR";
-  let correlationId: string | undefined;
+function handleError(
+  error: any,
+  context?: string,
+  customHandler?: (error: ApiError, context?: string) => void
+) {
+  // Transform error to ApiError format
+  const apiError: ApiError = {
+    message: error?.message || error?.data?.message || "Request failed",
+    status: error?.status || error?.response?.status,
+    data: error?.data || error?.response?.data,
+    response: error?.response || error
+  };
 
-  // Handle backend error response format
-  if (error?.response?.data) {
-    const responseData = error.response.data as BackendErrorExtended;
-    if (responseData.error) {
-      message =
-        responseData.error.message || responseData.message || "Request failed";
-      errorCode = responseData.error.code;
-      correlationId = responseData.error.correlationId;
-    } else {
-      message = responseData.message || "Request failed";
-    }
-  } else if (error?.data) {
-    const errorData = error.data as BackendErrorExtended;
-    if (errorData.error) {
-      message =
-        errorData.error.message || errorData.message || "Request failed";
-      errorCode = errorData.error.code;
-      correlationId = errorData.error.correlationId;
-    } else {
-      message = errorData.message || "Request failed";
-    }
-  } else if (error?.message) {
-    message = error.message;
+  if (customHandler) {
+    customHandler(apiError, context);
+  } else {
+    console.error(`[Enfyra API Error]`, { error: apiError, context });
   }
 
-  // You can customize error handling here
-  // For now, just log the error
-  console.error(`[Enfyra API Error] ${errorCode}: ${message}`, {
-    context,
-    correlationId,
-    error,
-  });
+  return apiError;
 }
+
+// Function overloads for proper TypeScript support
+export function useEnfyraApi<T = any>(
+  path: (() => string) | string,
+  opts: ApiOptions<T> & { ssr: true }
+): UseEnfyraApiSSRReturn<T>;
+
+export function useEnfyraApi<T = any>(
+  path: (() => string) | string,
+  opts?: ApiOptions<T> & { ssr?: false | undefined }
+): UseEnfyraApiClientReturn<T>;
 
 export function useEnfyraApi<T = any>(
   path: (() => string) | string,
   opts: ApiOptions<T> = {}
-): UseEnfyraApiReturn<T> {
-  const { method = "get", body, query, errorContext } = opts;
+): UseEnfyraApiSSRReturn<T> | UseEnfyraApiClientReturn<T> {
+  const { method = "get", body, query, errorContext, onError, ssr, key } = opts;
+
+  // SSR mode - use useFetch
+  if (ssr) {
+    const config = useRuntimeConfig().public.enfyraSDK;
+    const basePath = (typeof path === "function" ? path() : path)
+      .replace(/^\/?api\/?/, "")
+      .replace(/^\/+/, ""); // Remove leading slashes
+
+    const finalUrl =
+      (config?.appUrl || "") + (config?.apiPrefix || "") + "/" + basePath;
+
+    // Get headers from client request and filter out connection-specific headers
+    const clientHeaders = process.client
+      ? {}
+      : useRequestHeaders([
+          "authorization",
+          "cookie",
+          "user-agent",
+          "accept",
+          "accept-language",
+          "referer",
+        ]);
+
+    // Remove connection-specific headers that shouldn't be forwarded
+    const serverHeaders = { ...clientHeaders };
+    delete serverHeaders.connection;
+    delete serverHeaders["keep-alive"];
+    delete serverHeaders.host;
+    delete serverHeaders["content-length"];
+
+    const fetchOptions: any = {
+      method: method as any,
+      body: body,
+      query: query,
+      headers: {
+        ...serverHeaders,
+        ...opts.headers, // Custom headers override client headers
+      },
+    };
+
+    // Only add useFetch-specific options if provided
+    if (key) {
+      fetchOptions.key = key;
+    }
+    if (opts.default) {
+      fetchOptions.default = opts.default;
+    }
+
+    return useFetch<T>(finalUrl, fetchOptions) as UseEnfyraApiSSRReturn<T>;
+  }
   const data = ref<T | null>(null);
-  const error = ref<any>(null);
+  const error = ref<ApiError | null>(null);
   const pending = ref(false);
 
   const execute = async (executeOpts?: {
@@ -69,7 +115,6 @@ export function useEnfyraApi<T = any>(
       const config: any = useRuntimeConfig().public.enfyraSDK;
       const apiUrl = config?.appUrl;
       const apiPrefix = config?.apiPrefix;
-
       const basePath = (typeof path === "function" ? path() : path)
         .replace(/^\/?api\/?/, "")
         .replace(/^\/+/, ""); // Remove leading slashes
@@ -146,8 +191,8 @@ export function useEnfyraApi<T = any>(
       data.value = response;
       return response;
     } catch (err) {
-      error.value = err;
-      handleApiError(err, errorContext);
+      const apiError = handleError(err, errorContext, onError);
+      error.value = apiError;
       return null;
     } finally {
       pending.value = false;
@@ -155,9 +200,9 @@ export function useEnfyraApi<T = any>(
   };
 
   return {
-    data: data as any,
+    data,
     error,
     pending,
     execute,
-  };
+  } as UseEnfyraApiClientReturn<T>;
 }
