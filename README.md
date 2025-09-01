@@ -505,13 +505,47 @@ const { execute } = useEnfyraApi<CreateUserResponse>('/users', {
 - Implement proper cache keys to avoid over-caching
 - Group related operations with batch APIs
 
+## Development
+
+### Testing
+
+The SDK includes a comprehensive test suite using Vitest:
+
+```bash
+# Run tests once
+npm run test:run
+
+# Run tests in watch mode
+npm test
+
+# Run tests with UI
+npm run test:ui
+```
+
+**Test Coverage:**
+- ✅ **Extension naming utilities** - UUID generation and validation
+- ✅ **Vue SFC validation** - Syntax and structure validation  
+- ✅ **JS bundle validation** - Syntax and export validation
+- ✅ **Extension processing** - Complete workflow testing
+- ✅ **35 test cases** covering all edge cases and error handling
+
+### Building
+
+```bash
+# Build the module
+npm run build
+
+# Development mode
+npm run dev
+```
+
 ## License
 
 MIT
 
 ## Contributing
 
-Pull requests are welcome! Please read our contributing guidelines and ensure tests pass.
+Pull requests are welcome! Please read our contributing guidelines and ensure tests pass before submitting.
 
 ## Changelog
 

@@ -1,0 +1,40 @@
+# Development
+playground/
+docs/
+scripts/
+.nuxt/
+.output/
+
+# Source (only publish dist)
+src/
+*.ts
+!*.d.ts
+
+# Config files
+tsconfig.json
+tsconfig.build.json
+.eslintrc
+.prettierrc
+nuxt.config.ts
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# Dependencies
+node_modules/
+
+# macOS
+.DS_Store
+
+# Build artifacts
+.cache/
+.tmp/

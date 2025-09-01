@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2025-09-01
+
+### 🔧 Enhanced Architecture & Testing - Production-Ready Development Experience
+
+This release focuses on code quality, maintainability, and developer experience with modular architecture and comprehensive testing.
+
+### Added
+- **✅ Comprehensive Test Suite** - Production-ready quality assurance
+  - **35 Test Cases** covering all core functionality and edge cases
+  - **Vitest Framework** - Modern testing with UI support and watch mode
+  - **Mock Integration** - Isolated unit testing for reliable CI/CD
+  - **TypeScript Coverage** - Full type safety validation across the codebase
+
+- **🏗️ Modular Architecture** - Clean, maintainable code structure
+  - **Focused Modules** - Separated concerns for better maintainability
+  - **Clean Exports** - Improved import structure and tree-shaking
+  - **Performance Optimized** - Efficient processing with automatic cleanup
+  - **Security Enhanced** - Input validation and error handling improvements
+
+### Enhanced  
+- **🛠️ Developer Experience** - Professional development workflow
+  - **Test Scripts** - `npm test`, `npm run test:ui`, `npm run test:run`
+  - **Build Optimization** - Faster builds with latest Vite 6.0.7
+  - **TypeScript Integration** - Enhanced type safety and IntelliSense
+  - **Documentation** - Updated README with testing instructions
+
+- **📦 Package Updates** - Latest tools and dependencies
+  - **Vite 6.0.7** - Latest build tool for optimal performance  
+  - **@vitejs/plugin-vue 5.2.0** - Enhanced Vue processing capabilities
+  - **Vitest 3.2.4** - Modern testing framework with excellent DX
+
+### Technical Improvements
+- **Background Processing** - Enhanced server-side handling for specialized operations
+- **Automatic Cleanup** - Memory efficient processing with proper resource management  
+- **Error Recovery** - Graceful handling of edge cases and failures
+- **Concurrent Safety** - Thread-safe operations for production environments
+
+### Breaking Changes
+None - Fully backward compatible. All existing functionality remains unchanged.
+
 ## [0.2.3] - 2025-09-01
 
 ### 🚀 Real-time Progress Tracking - Revolutionary Batch Monitoring
@@ -372,8 +412,51 @@ None - Fully backward compatible. All existing batch operations continue to work
 - **0.2.1** - Enhanced TypeScript support with function overloads, improved error handling with typed errors, and better IntelliSense
 - **0.2.2** - Revolutionary batch processing with chunking and concurrency control - industry-leading bulk operations
 - **0.2.3** - Real-time progress tracking for batch operations with comprehensive metrics and configuration validation
+- **0.3.0** - Extension definition processing with Vue SFC compilation, modular architecture, and comprehensive test suite
 
 ## Migration Guide
+
+### From 0.2.x to 0.3.x
+
+No breaking changes - all 0.2.x functionality remains the same. Extension definition processing is handled automatically:
+
+```typescript
+// All existing code works unchanged
+const { data, execute } = useEnfyraApi('/users');
+const { login, logout, me } = useEnfyraAuth();
+
+// Extension definition processing is automatic - no code changes needed
+const { execute: createExtension } = useEnfyraApi('/extension_definition', {
+  method: 'post'
+});
+
+await createExtension({
+  body: {
+    name: 'My Extension',
+    code: '<template><div>Vue SFC</div></template>' // Automatically compiled
+  }
+});
+```
+
+### New in 0.3.x
+
+1. **Enhanced development experience:**
+- Comprehensive test suite with 35 test cases
+- Modular architecture for maintainability
+- Latest Vite 6.0.7 and Vue tools
+- Background processing improvements
+
+2. **Testing capabilities:**
+```bash
+# Run tests
+npm test
+
+# Run tests with UI  
+npm run test:ui
+
+# Run tests once
+npm run test:run
+```
 
 ### From 0.1.x to 0.2.x
 
@@ -386,34 +469,3 @@ const { data, execute } = useEnfyraApi('/users');
 // 0.2.x - New authentication features  
 const { login, logout, me, isLoggedIn } = useEnfyraAuth();
 ```
-
-### New in 0.2.x
-
-1. **Add authentication to your app:**
-```typescript
-// Login user
-await login({ email: 'user@example.com', password: 'password' });
-
-// Check auth status
-if (isLoggedIn.value) {
-  console.log('Current user:', me.value);
-}
-
-// Logout
-await logout();
-```
-
-2. **Automatic SSR authentication:**
-```typescript
-// Headers automatically forwarded in SSR mode
-const { data: profile } = useEnfyraApi('/me', {
-  ssr: true,
-  key: 'user-profile'
-});
-```
-
-3. **Enhanced documentation:**
-- Complete guides for both composables
-- Real-world examples and best practices  
-- TypeScript integration patterns
-- Performance optimization tips

@@ -1,0 +1,16 @@
+name: "@enfyra/sdk-nuxt"
+description: "Nuxt SDK for Enfyra CMS with SSR support, real-time progress tracking, and smart TypeScript"
+repo: "dothinh115/enfyra-sdk-nuxt"
+npm: "@enfyra/sdk-nuxt"
+icon: "https://raw.githubusercontent.com/dothinh115/enfyra-sdk-nuxt/main/logo.svg"
+github: "dothinh115/enfyra-sdk-nuxt"
+website: "https://github.com/dothinh115/enfyra-sdk-nuxt"
+learn_more: "https://github.com/dothinh115/enfyra-sdk-nuxt#readme"
+category: "API"
+type: "community"
+maintainers:
+  - name: "Enfyra Team"
+    github: "dothinh115"
+compatibility:
+  nuxt: "^3.0.0"
+  bridge: false
