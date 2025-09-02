@@ -6,6 +6,7 @@ Nuxt SDK for Enfyra CMS - A powerful composable-based API client with full SSR s
 
 ✅ **SSR & Client-Side Support** - Automatic server-side rendering with `useFetch` or client-side with `$fetch`  
 ✅ **Authentication Integration** - Built-in auth composables with automatic header forwarding  
+✅ **Asset Proxy** - Automatic `/assets/**` proxy to backend with no configuration needed  
 ✅ **TypeScript Support** - Full type safety with auto-generated declarations  
 ✅ **Batch Operations** - Efficient bulk operations with real-time progress tracking (client-side)  
 ✅ **Error Handling** - Automatic error management with console logging  
@@ -106,6 +107,28 @@ console.log('Current user:', me.value);
 await logout();
 </script>
 ```
+
+### Asset URLs - Automatic Proxy
+
+The SDK automatically proxies all asset requests to your backend. Simply use `/assets/**` paths directly:
+
+```vue
+<template>
+  <!-- ✅ Assets are automatically proxied to your backend -->
+  <img src="/assets/images/logo.svg" alt="Logo" />
+  <img :src="`/assets/images/users/${user.id}/avatar.jpg`" alt="Avatar" />
+  
+  <!-- Works with any asset type -->
+  <video src="/assets/videos/intro.mp4" controls />
+  <a :href="`/assets/documents/${doc.filename}`" download>Download PDF</a>
+</template>
+```
+
+**How it works:**
+- All requests to `/assets/**` are automatically proxied to `{apiUrl}/enfyra/api/assets/**`
+- No configuration needed - works out of the box
+- Supports all asset types: images, videos, documents, etc.
+- Maintains proper authentication headers
 
 ## Core Composables
 

@@ -73,6 +73,12 @@ export default defineNuxtModule({
       method: "patch",
     });
 
+    // Assets proxy handler - catch all assets requests
+    addServerHandler({
+      route: "/assets/**",
+      handler: resolve("./runtime/server/api/all"),
+    });
+
     // Catch-all handler for other routes
     addServerHandler({
       route: `${ENFYRA_API_PREFIX}/**`,
