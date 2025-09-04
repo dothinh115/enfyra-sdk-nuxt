@@ -105,6 +105,7 @@ export interface UseEnfyraApiSSRReturn<T> extends AsyncData<T | null, ApiError> 
 interface BaseExecuteOptions {
   body?: any;
   id?: string | number;
+  query?: Record<string, any>;
 }
 
 interface BatchExecuteOptions {

@@ -6,41 +6,11 @@ const me = ref<User | null>(null);
 const isLoading = ref<boolean>(false);
 
 export function useEnfyraAuth() {
-  const meFields = [
-    "id",
-    "email",
-    "isRootAdmin",
-    "isSystem",
-    "role.id",
-    "role.name",
-    "role.routePermissions.id",
-    "role.routePermissions.isEnabled",
-    "role.routePermissions.allowedUsers",
-    "role.routePermissions.methods.id",
-    "role.routePermissions.methods.method",
-    "role.routePermissions.route.id",
-    "role.routePermissions.route.path",
-    "allowedRoutePermissions.id",
-    "allowedRoutePermissions.isEnabled",
-    "allowedRoutePermissions.allowedUsers.id",
-    "allowedRoutePermissions.methods.id",
-    "allowedRoutePermissions.methods.method",
-    "allowedRoutePermissions.route.id",
-    "allowedRoutePermissions.route.path",
-  ];
-
   const {
-    data: meData,
-    execute: executeFetchUser,
-    error: fetchUserError,
-  } = useEnfyraApi("/me", {
-    query: {
-      fields: meFields.join(","),
-    },
-    errorContext: "Fetch User Profile",
-  });
-
-  const { execute: executeLogin, error: loginError } = useEnfyraApi("/login", {
+    data: loginData,
+    execute: executeLogin,
+    error: loginError,
+  } = useEnfyraApi("/login", {
     method: "post",
     errorContext: "Login",
   });
@@ -50,18 +20,36 @@ export function useEnfyraAuth() {
     errorContext: "Logout",
   });
 
-  const fetchUser = async () => {
+  const {
+    data: meData,
+    execute: executeFetchUser,
+    error: fetchUserError,
+  } = useEnfyraApi("/me", {
+    errorContext: "Fetch User Profile",
+  });
+
+  const fetchUser = async (options?: { fields?: string[] }) => {
     isLoading.value = true;
 
     try {
-      await executeFetchUser();
+      if (!options?.fields || options.fields.length === 0) {
+        throw new Error(
+          "fetchUser requires fields parameter. Please provide fields array in options."
+        );
+      }
+
+      await executeFetchUser({
+        query: {
+          fields: options.fields.join(","),
+        },
+      });
 
       if (fetchUserError.value) {
         me.value = null;
         return;
       }
 
-      me.value = (meData.value as any)?.data?.[0] || meData.value || null;
+      me.value = (meData.value as any)?.data?.[0];
     } finally {
       isLoading.value = false;
     }
@@ -71,14 +59,13 @@ export function useEnfyraAuth() {
     isLoading.value = true;
 
     try {
-      const response = await executeLogin({ body: payload });
+      await executeLogin({ body: payload });
 
       if (loginError.value) {
         return null;
       }
 
-      await fetchUser();
-      return response;
+      return loginData.value;
     } finally {
       isLoading.value = false;
     }

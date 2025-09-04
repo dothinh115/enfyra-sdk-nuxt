@@ -114,7 +114,7 @@ export function useEnfyraApi<T = any>(
         .replace(/^\/?api\/?/, "")
         .replace(/^\/+/, "");
       const finalBody = executeOpts?.body || unref(body);
-      const finalQuery = unref(query);
+      const finalQuery = executeOpts?.query || unref(query);
 
       const isBatchOperation =
         !opts.disableBatch &&
