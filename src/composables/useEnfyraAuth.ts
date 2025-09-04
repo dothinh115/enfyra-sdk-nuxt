@@ -2,7 +2,6 @@ import { ref, computed } from "vue";
 import type { LoginPayload, User } from "../types/auth";
 import { useEnfyraApi } from "./useEnfyraApi";
 
-// Global reactive state using Nuxt's useState-like pattern for SDK
 const me = ref<User | null>(null);
 const isLoading = ref<boolean>(false);
 
@@ -30,7 +29,6 @@ export function useEnfyraAuth() {
     "allowedRoutePermissions.route.path",
   ];
 
-  // API composables using SDK endpoints
   const {
     data: meData,
     execute: executeFetchUser,
@@ -93,12 +91,10 @@ export function useEnfyraAuth() {
       await executeLogout();
       me.value = null;
 
-      // Reload page after logout
       if (typeof window !== "undefined") {
         window.location.reload();
       }
     } catch (error) {
-      // Even if logout fails, clear local state
       me.value = null;
       if (typeof window !== "undefined") {
         window.location.reload();
@@ -108,7 +104,6 @@ export function useEnfyraAuth() {
     }
   };
 
-  // Computed for backward compatibility
   const isLoggedIn = computed(() => !!me.value);
   return {
     me,

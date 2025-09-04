@@ -16,14 +16,12 @@ export default defineEventHandler(async (event) => {
   try {
     let body = await readBody(event);
     
-    // Process extension definition logic
     const { processedBody, compiledCode } = await processExtensionDefinition(body, method);
     body = processedBody;
 
-    // Make API call to backend
     const config = useRuntimeConfig();
     const apiPath = event.path.replace("/enfyra/api", "");
-    const targetUrl = `${config.public.enfyraSDK.apiUrl}${apiPath}`;
+    const targetUrl = `${config.public?.enfyraSDK?.apiUrl}${apiPath}`;
 
     const response = await $fetch(targetUrl, {
       method: "PATCH",

@@ -3,6 +3,7 @@ import {
   createResolver,
   addServerHandler,
   addImportsDir,
+  addPlugin,
 } from "@nuxt/kit";
 import { ENFYRA_API_PREFIX } from "./constants/config";
 
@@ -13,41 +14,48 @@ export default defineNuxtModule({
   },
   defaults: {
     apiUrl: "",
-    appUrl: "",
   },
   setup(options, nuxt) {
     const { resolve } = createResolver(import.meta.url);
 
-    // Validate required configuration
-    if (!options.apiUrl || !options.appUrl) {
-      throw new Error(
+    if (!options.apiUrl) {
+      console.warn(
         `[Enfyra SDK Nuxt] Missing required configuration:\n` +
-          `${!options.apiUrl ? "- apiUrl is required\n" : ""}` +
-          `${!options.appUrl ? "- appUrl is required\n" : ""}` +
-          `Please configure both in your nuxt.config.ts:\n` +
+          `- apiUrl is required\n` +
+          `Please configure it in your nuxt.config.ts:\n` +
           `enfyraSDK: {\n` +
-          `  apiUrl: 'https://your-api-url',\n` +
-          `  appUrl: 'https://your-app-url'\n` +
+          `  apiUrl: 'https://your-api-url'\n` +
           `}`
       );
+      
+      nuxt.options.runtimeConfig.public.enfyraSDK = {
+        ...options,
+        apiPrefix: ENFYRA_API_PREFIX,
+        configError: true,
+        configErrorMessage: 'Enfyra SDK: apiUrl is required. Please configure it in nuxt.config.ts'
+      };
+    } else {
+      nuxt.options.runtimeConfig.public.enfyraSDK = {
+        ...options,
+        apiPrefix: ENFYRA_API_PREFIX,
+      };
     }
 
-    // Make module options available at runtime with hardcoded apiPrefix
-    nuxt.options.runtimeConfig.public.enfyraSDK = {
-      ...options,
-      apiPrefix: ENFYRA_API_PREFIX,
-    };
 
-    // Auto-import composables
+    if (!options.apiUrl) {
+      addPlugin({
+        src: resolve("./runtime/plugin/config-error.client"),
+        mode: 'client'
+      });
+    }
+    
     addImportsDir(resolve("./composables"));
 
-    // Register auth middleware to inject token
     addServerHandler({
       handler: resolve("./runtime/server/middleware/auth"),
       middleware: true,
     });
 
-    // Register server handlers from SDK with hardcoded prefix
     addServerHandler({
       route: `${ENFYRA_API_PREFIX}/login`,
       handler: resolve("./runtime/server/api/login.post"),
@@ -60,7 +68,6 @@ export default defineNuxtModule({
       method: "post",
     });
 
-    // Register extension_definition specific handlers
     addServerHandler({
       route: `${ENFYRA_API_PREFIX}/extension_definition`,
       handler: resolve("./runtime/server/api/extension_definition.post"),
@@ -73,13 +80,11 @@ export default defineNuxtModule({
       method: "patch",
     });
 
-    // Assets proxy handler - catch all assets requests
     addServerHandler({
       route: "/assets/**",
       handler: resolve("./runtime/server/api/all"),
     });
 
-    // Catch-all handler for other routes
     addServerHandler({
       route: `${ENFYRA_API_PREFIX}/**`,
       handler: resolve("./runtime/server/api/all"),

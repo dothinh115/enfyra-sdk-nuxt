@@ -27,11 +27,18 @@ Add the module to your `nuxt.config.ts`:
 export default defineNuxtConfig({
   modules: ["@enfyra/sdk-nuxt"],
   enfyraSDK: {
-    apiUrl: "http://localhost:1105",
-    appUrl: "http://localhost:3001",
+    apiUrl: "http://localhost:1105", // Only apiUrl is required
   },
 })
 ```
+
+### Automatic App URL Detection
+
+The SDK automatically detects your application URL:
+
+- **Client-side**: Uses `window.location.origin`
+- **Server-side**: Detects from request headers (supports proxies with `X-Forwarded-*` headers)
+- **No configuration needed**: Works out of the box with any deployment
 
 ## Quick Start
 

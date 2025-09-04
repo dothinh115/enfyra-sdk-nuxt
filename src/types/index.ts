@@ -41,7 +41,6 @@ export interface BatchProgress {
   }>;
 }
 
-// Base options available for all operations
 interface BaseApiOptions<T> {
   method?: 'get' | 'post' | 'put' | 'patch' | 'delete' | 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
   body?: any;
@@ -57,7 +56,6 @@ interface BaseApiOptions<T> {
   key?: string;
 }
 
-// Batch-specific options (only available for batch operations)
 interface BatchApiOptions {
   /** Batch size for chunking large operations (default: no limit) - Only available for batch operations */
   batchSize?: number;
@@ -67,7 +65,6 @@ interface BatchApiOptions {
   onProgress?: (progress: BatchProgress) => void;
 }
 
-// Conditional type that adds batch options only for batch-capable methods
 type ConditionalBatchOptions<T> = T extends { method?: 'patch' | 'delete' | 'PATCH' | 'DELETE' }
   ? BatchApiOptions
   : T extends { method?: 'post' | 'POST' }
@@ -76,7 +73,6 @@ type ConditionalBatchOptions<T> = T extends { method?: 'patch' | 'delete' | 'PAT
   ? Partial<BatchApiOptions>  // Allow batch options but make them optional since method could change
   : {};
 
-// Main ApiOptions interface with conditional batch support
 export type ApiOptions<T> = BaseApiOptions<T> & ConditionalBatchOptions<BaseApiOptions<T>>;
 
 export interface BackendError {
@@ -99,7 +95,6 @@ export interface BackendErrorExtended extends BackendError {
 import type { Ref } from 'vue';
 import type { AsyncData } from 'nuxt/app';
 
-// SSR Mode return type (same as useFetch)
 export interface UseEnfyraApiSSRReturn<T> extends AsyncData<T | null, ApiError> {
   data: Ref<T | null>;
   pending: Ref<boolean>;
@@ -107,14 +102,11 @@ export interface UseEnfyraApiSSRReturn<T> extends AsyncData<T | null, ApiError> 
   refresh: () => Promise<void>;
 }
 
-// Execute options interface
-// Base execute options available for all operations
 interface BaseExecuteOptions {
   body?: any;
   id?: string | number;
 }
 
-// Batch execute options (only available when doing batch operations)
 interface BatchExecuteOptions {
   ids?: (string | number)[];
   /** Array of FormData objects for batch upload */
@@ -127,7 +119,6 @@ interface BatchExecuteOptions {
   onProgress?: (progress: BatchProgress) => void;
 }
 
-// Conditional execute options based on what's being executed
 type ConditionalExecuteOptions<T> = T extends { ids: any }
   ? BatchExecuteOptions // If ids provided, enable all batch options
   : T extends { files: any }
@@ -136,7 +127,6 @@ type ConditionalExecuteOptions<T> = T extends { ids: any }
 
 export type ExecuteOptions = BaseExecuteOptions & BatchExecuteOptions;
 
-// Client Mode return type
 export interface UseEnfyraApiClientReturn<T> {
   data: Ref<T | null>;
   error: Ref<ApiError | null>;
@@ -145,6 +135,5 @@ export interface UseEnfyraApiClientReturn<T> {
 }
 
 
-// Re-export auth types
 export * from './auth';
 

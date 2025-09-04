@@ -9,7 +9,7 @@ import {
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig();
-  const apiUrl = config.public.enfyraSDK.apiUrl;
+  const apiUrl = config.public?.enfyraSDK?.apiUrl;
 
   const refreshToken = getCookie(event, REFRESH_TOKEN_KEY);
 
@@ -25,14 +25,12 @@ export default defineEventHandler(async (event) => {
       },
     });
 
-    // Delete cookies on Nuxt side
     deleteCookie(event, ACCESS_TOKEN_KEY);
     deleteCookie(event, REFRESH_TOKEN_KEY);
     deleteCookie(event, EXP_TIME_KEY);
 
     return result;
   } catch (err: any) {
-    // Don't throw — still delete local cookies
     deleteCookie(event, ACCESS_TOKEN_KEY);
     deleteCookie(event, REFRESH_TOKEN_KEY);
     deleteCookie(event, EXP_TIME_KEY);

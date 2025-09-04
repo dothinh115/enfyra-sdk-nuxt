@@ -16,7 +16,7 @@ import {
 
 export default defineEventHandler(async (event) => {
   const config = useRuntimeConfig();
-  const apiUrl = config.public.enfyraSDK.apiUrl;
+  const apiUrl = config.public.enfyraSDK?.apiUrl;
 
   try {
     const body = await readBody(event);

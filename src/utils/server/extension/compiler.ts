@@ -9,7 +9,6 @@ export async function buildExtensionWithVite(
   vueContent: string,
   extensionId: string
 ): Promise<string> {
-  // Generate unique temp directory name for each build to avoid conflicts
   const buildId = `${extensionId}-${Date.now()}-${randomUUID()}`;
   const tempDir = join(process.cwd(), ".temp-extension-builds", buildId);
   const tempExtensionFile = join(tempDir, "extension.vue");
@@ -73,6 +72,5 @@ async function cleanupTempDirectory(tempDir: string): Promise<void> {
       await fs.rm(tempDir, { recursive: true, force: true });
     }
   } catch (cleanupError) {
-    // Silent cleanup failure - not critical
   }
 }

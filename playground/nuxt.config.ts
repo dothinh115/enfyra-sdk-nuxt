@@ -10,6 +10,5 @@ export default defineNuxtConfig({
   },
   enfyraSDK: {
     apiUrl: "http://localhost:1105",
-    appUrl: "http://localhost:3001",
   },
 });

@@ -16,19 +16,14 @@ export function validateTokens(event: H3Event): TokenValidationResult {
   const refreshToken = getCookie(event, REFRESH_TOKEN_KEY);
   const expTime = getCookie(event, EXP_TIME_KEY);
 
-  // Check if access token is expired
-  // expTime is expected to be in milliseconds
   const isTokenExpired = expTime && Date.now() > parseInt(expTime);
 
   if (accessToken && !isTokenExpired) {
-    // Token is valid, use it
     return { accessToken, needsRefresh: false };
   } else if (refreshToken && (isTokenExpired || !accessToken)) {
-    // Token expired or missing, needs refresh
     return { accessToken: null, needsRefresh: true };
   }
 
-  // No valid tokens
   return { accessToken: null, needsRefresh: false };
 }
 
@@ -49,7 +44,6 @@ export async function refreshAccessToken(
       expTime: newExpTime,
     } = response;
 
-    // Update cookies with new tokens
     const cookieOptions = {
       httpOnly: true,
       secure: true,

@@ -15,7 +15,6 @@ export async function $fetch<T = any>(
     query = {},
     baseURL,
   } = options;
-  // Build URL - baseURL is required when calling $fetch
   if (!baseURL) {
     throw new Error('baseURL is required for $fetch');
   }
@@ -25,7 +24,6 @@ export async function $fetch<T = any>(
     baseURL.endsWith("/") ? baseURL : `${baseURL}/`
   );
 
-  // Add query parameters
   Object.entries(query).forEach(([key, value]) => {
     if (value !== undefined && value !== null) {
       if (typeof value === 'object') {
@@ -36,19 +34,16 @@ export async function $fetch<T = any>(
     }
   });
 
-  // Merge headers
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...optionHeaders,
   };
 
-  // Prepare fetch options
   const fetchOptions: RequestInit = {
     method: method.toUpperCase(),
     headers,
   };
 
-  // Add body if present
   if (body && method.toUpperCase() !== "GET") {
     if (body instanceof FormData) {
       delete headers["Content-Type"]; // Let browser set boundary for FormData
@@ -71,7 +66,6 @@ export async function $fetch<T = any>(
       throw { response: { data: errorData } };
     }
 
-    // Handle different response types
     const contentType = response.headers.get("content-type");
     if (contentType?.includes("application/json")) {
       return await response.json();

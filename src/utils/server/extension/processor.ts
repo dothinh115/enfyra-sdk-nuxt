@@ -19,14 +19,12 @@ export async function processExtensionDefinition(
     return { processedBody: body };
   }
 
-  // Auto-assign extension name
   body = autoAssignExtensionName(body);
 
   const code: string = body.code;
   const extensionId = body.id || body.name || "extension_" + Date.now();
 
   if (isProbablyVueSFC(code)) {
-    // Validate SFC syntax before building
     assertValidVueSFC(code);
 
     try {
@@ -44,7 +42,6 @@ export async function processExtensionDefinition(
       });
     }
   } else {
-    // Treat as compiled bundle; validate syntax first
     assertValidJsBundleSyntax(code);
     return { processedBody: body };
   }
