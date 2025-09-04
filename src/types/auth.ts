@@ -31,5 +31,6 @@ export interface UseEnfyraAuthReturn {
   me: Ref<User | null>
   login: (payload: LoginPayload) => Promise<any>
   logout: () => Promise<void>
-  fetchUser: () => Promise<void>
+  fetchUser: (options?: { fields?: string[] }) => Promise<void>
+  isLoggedIn: Ref<boolean>
 }

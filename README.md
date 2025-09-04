@@ -434,12 +434,15 @@ watch([searchQuery, page], () => refresh());
 
 For comprehensive guides and examples:
 
-📚 **[useEnfyraApi Complete Guide](https://github.com/dothinh115/enfyra-sdk-nuxt/blob/main/docs/useEnfyraApi.md)** - Detailed documentation with examples, best practices, and troubleshooting
+📚 **[useEnfyraApi Complete Guide](https://github.com/dothinh115/enfyra-sdk-nuxt/blob/main/docs/useEnfyraApi.md)** - API client composable with SSR support, batch operations, and error handling
+
+🔐 **[useEnfyraAuth Complete Guide](https://github.com/dothinh115/enfyra-sdk-nuxt/blob/main/docs/useEnfyraAuth.md)** - Authentication composable with user management and login/logout functionality
 
 Key topics covered:
 - SSR vs Client Mode comparison
 - Authentication and headers forwarding  
 - Batch operations and CRUD patterns
+- User management and authentication flows
 - Error handling best practices
 - TypeScript integration
 - Performance optimization

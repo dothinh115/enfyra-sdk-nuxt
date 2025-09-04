@@ -1,5 +1,5 @@
 import { ref, computed } from "vue";
-import type { LoginPayload, User } from "../types/auth";
+import type { LoginPayload, User, UseEnfyraAuthReturn } from "../types/auth";
 import { useEnfyraApi } from "./useEnfyraApi";
 
 const me = ref<User | null>(null);
@@ -32,16 +32,14 @@ export function useEnfyraAuth() {
     isLoading.value = true;
 
     try {
-      if (!options?.fields || options.fields.length === 0) {
-        throw new Error(
-          "fetchUser requires fields parameter. Please provide fields array in options."
-        );
+      const queryParams: any = {};
+      
+      if (options?.fields && options.fields.length > 0) {
+        queryParams.fields = options.fields.join(",");
       }
 
       await executeFetchUser({
-        query: {
-          fields: options.fields.join(","),
-        },
+        query: queryParams,
       });
 
       if (fetchUserError.value) {
@@ -98,5 +96,5 @@ export function useEnfyraAuth() {
     logout,
     fetchUser,
     isLoggedIn,
-  };
+  } as const;
 }
