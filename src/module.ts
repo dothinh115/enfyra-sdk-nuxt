@@ -68,17 +68,6 @@ export default defineNuxtModule({
       method: "post",
     });
 
-    addServerHandler({
-      route: `${ENFYRA_API_PREFIX}/extension_definition`,
-      handler: resolve("./runtime/server/api/extension_definition.post"),
-      method: "post",
-    });
-
-    addServerHandler({
-      route: `${ENFYRA_API_PREFIX}/extension_definition/**`,
-      handler: resolve("./runtime/server/api/extension_definition/[id].patch"),
-      method: "patch",
-    });
 
     addServerHandler({
       route: "/assets/**",
