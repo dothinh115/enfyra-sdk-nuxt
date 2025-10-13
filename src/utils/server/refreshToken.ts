@@ -11,16 +11,41 @@ interface TokenValidationResult {
   needsRefresh: boolean;
 }
 
+export function decodeJWT(token: string): any {
+  try {
+    const parts = token.split(".");
+    if (parts.length !== 3) {
+      return null;
+    }
+    
+    // Decode the payload (second part)
+    const payload = parts[1];
+    const decodedPayload = Buffer.from(payload, "base64url").toString("utf-8");
+    return JSON.parse(decodedPayload);
+  } catch (error) {
+    console.warn("Failed to decode JWT:", error);
+    return null;
+  }
+}
+
+export function isAccessTokenExpired(accessToken: string): boolean {
+  const decoded = decodeJWT(accessToken);
+  if (!decoded || !decoded.exp) {
+    return true;
+  }
+  
+  // JWT exp is in seconds, Date.now() is in milliseconds
+  const expirationTime = decoded.exp * 1000;
+  return Date.now() >= expirationTime;
+}
+
 export function validateTokens(event: H3Event): TokenValidationResult {
   const accessToken = getCookie(event, ACCESS_TOKEN_KEY);
   const refreshToken = getCookie(event, REFRESH_TOKEN_KEY);
-  const expTime = getCookie(event, EXP_TIME_KEY);
 
-  const isTokenExpired = expTime && Date.now() > parseInt(expTime);
-
-  if (accessToken && !isTokenExpired) {
+  if (accessToken && !isAccessTokenExpired(accessToken)) {
     return { accessToken, needsRefresh: false };
-  } else if (refreshToken && (isTokenExpired || !accessToken)) {
+  } else if (refreshToken && (!accessToken || isAccessTokenExpired(accessToken))) {
     return { accessToken: null, needsRefresh: true };
   }
 
